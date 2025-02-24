@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>File Integrity Monitor</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/crypto-js@4.1.1/crypto-js.min.js"></script>
+    <style>
+        body {
+            padding: 20px;
+        }
+        #result {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>File Integrity Monitor</h1>
+        <input type="file" id="fileInput" class="form-control">
+        <button id="calculateButton" class="btn btn-primary">Calculate Initial Hash</button>
+        <button id="compareButton" class="btn btn-secondary" disabled>Compare Hash</button>
+        <div id="result"></div>
+        <div id="fileInfo" style="display: none;">
+            <p>File Name: <span id="fileName"></span></p>
+            <p>Initial Hash: <span id="initialHash"></span></p>
+        </div>
+    </div>
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const calculateButton = document.getElementById('calculateButton');
+        const compareButton = document.getElementById('compareButton');
+        const resultDiv = document.getElementById('result');
+        const fileInfoDiv = document.getElementById('fileInfo');
+        const fileNameSpan = document.getElementById('fileName');
+        const initialHashSpan = document.getElementById('initialHash');
+
+        let initialHash = '';
+        let fileName = '';
+
+        calculateButton.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) {
+                resultDiv.innerText = 'Please select a file';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const fileArray = new Uint8Array(e.target.result);
+                const hash = CryptoJS.SHA256(fileArray);
+                initialHash = hash.toString(CryptoJS.enc.Hex);
+                fileName = file.name;
+                fileNameSpan.innerText = fileName;
+                initialHashSpan.innerText = initialHash;
+                fileInfoDiv.style.display = 'block';
+                compareButton.disabled = false;
+                localStorage.setItem('initialHash', initialHash);
+                localStorage.setItem('fileName', fileName);
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        compareButton.addEventListener('click', async () => {
+            const file = fileInput.files[0];
+            if (!file) {
+                resultDiv.innerText = 'Please select a file';
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                const fileArray = new Uint8Array(e.target.result);
+                const hash = CryptoJS.SHA256(fileArray);
+                const currentHash = hash.toString(CryptoJS.enc.Hex);
+                if (currentHash === initialHash) {
+                    resultDiv.innerText = 'File has not changed';
+                    resultDiv.classList.remove('text-danger');
+                    resultDiv.classList.add('text-success');
+                } else {
+                    resultDiv.innerText = 'File has changed';
+                    resultDiv.classList.remove('text-success');
+                    resultDiv.classList.add('text-danger');
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        if (localStorage.getItem('initialHash') && localStorage.getItem('fileName')) {
+            initialHash = localStorage.getItem('initialHash');
+            fileName = localStorage.getItem('fileName');
+            fileNameSpan.innerText = fileName;
+            initialHashSpan.innerText = initialHash;
+            fileInfoDiv.style.display = 'block';
+            compareButton.disabled = false;
+        }
+    </script>
+</body>
+</html>
